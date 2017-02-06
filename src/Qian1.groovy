@@ -21,70 +21,84 @@ class Qian1 {
 
     static void main(String[] args) {
 
+        createOmit()
+
+    }
+
+    static def createOmit() {
+
+        StringBuilder sb = new StringBuilder()
+
         def map = [:]
         map['山东'] = 'http://chart.icaile.com/?op=dcr1&num=500'
         map['广东'] = 'http://gd11x5.icaile.com/?op=dcr1&num=500'
         map['江西'] = 'http://jx11x5.icaile.com/?op=dcr1&num=500'
 
-        printDivider()
+        sb.append(createDivider())
 
-        map.each { key, value ->
+        while (true) {
+            map.each { key, value ->
 
-            print "\t\t\t\t"
+                sb.append("\t\t\t\t")
 
-            for (int i = 1; i <= 11; i++) {
-                print i + "\t"
-            }
-
-            println ""
-
-            println key
-
-            Document document = Jsoup.connect(value)
-                    .maxBodySize(0)
-                    .timeout(10000)
-                    .get()
-
-            Elements trs = document.getElementsByClass("chart-bg-foot").select("tr")
-
-            Elements trsMax = document.getElementsMatchingText("历史最大遗漏").last().parent().parent().select("tr")
-
-            trs.addAll(trsMax)
-
-            for (int i = 0; i < trs.size(); i++) {
-                Elements tds = trs.get(i).select("td")
-
-                for (int j = 0; j < 13; j++) {
-                    def text = tds.get(j).text()
-                    if ("当前遗漏值".equals(tds.get(0).text()) && isNumeric(text)) {
-                        if (Integer.parseInt(text) > 40) {
-                            print GREEN + text + "\t" + RESET
-                        } else if (Integer.parseInt(text) > 30) {
-                            print BLUE + text + "\t" + RESET
-                        } else {
-                            print text + "\t"
-                        }
-                    } else {
-                        print text + "\t"
-                    }
+                for (int i = 1; i <= 11; i++) {
+                    sb.append(i + "\t")
                 }
 
-                println ""
+                sb.append("\n")
+
+                sb.append(key)
+
+                Document document = Jsoup.connect(value)
+                        .maxBodySize(0)
+                        .timeout(10000)
+                        .get()
+
+                Elements trs = document.getElementsByClass("chart-bg-foot").select("tr")
+
+                Elements trsMax = document.getElementsMatchingText("历史最大遗漏").last().parent().parent().select("tr")
+
+                trs.addAll(trsMax)
+
+                for (int i = 0; i < trs.size(); i++) {
+                    Elements tds = trs.get(i).select("td")
+
+                    for (int j = 0; j < 13; j++) {
+                        def text = tds.get(j).text()
+                        if ("当前遗漏值".equals(tds.get(0).text()) && isNumeric(text)) {
+                            if (Integer.parseInt(text) > 40) {
+                                sb.append(GREEN + text + "\t" + RESET)
+                            } else if (Integer.parseInt(text) > 30) {
+                                sb.append(BLUE + text + "\t" + RESET)
+                            } else {
+                                sb.append(text + "\t")
+                            }
+                        } else {
+                            sb.append(text + "\t")
+                        }
+                    }
+
+                    sb.append("\n")
+                }
+
+                sb.append(createDivider())
             }
 
-            printDivider()
-        }
+            MailManager.sendMail(sb.toString())
 
+            sleep(60000)
+        }
     }
 
-    static void printDivider() {
+    static def createDivider() {
+        StringBuilder sb = new StringBuilder()
         for (int i = 0; i < 68; i++) {
-            print "="
+            sb.append("=")
         }
-        println ""
+        return sb.append("\n").toString()
     }
 
-    static boolean isNumeric(String str) {
+    static def isNumeric(String str) {
         if (str != null && !"".equals(str.trim())) {
             Pattern pattern = Pattern.compile("[0-9]*");
             return pattern.matcher(str).matches();
