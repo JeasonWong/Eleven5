@@ -1,5 +1,6 @@
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
+import org.jsoup.nodes.Element
 import org.jsoup.select.Elements
 
 import java.util.regex.Pattern
@@ -9,17 +10,22 @@ import java.util.regex.Pattern
  */
 class Qian1 {
 
-    public static final String BLACK = "\u001B[30m";
-    public static final String RED = "\u001B[31m";
-    public static final String GREEN = "\u001B[32m";
-    public static final String YELLOW = "\u001B[33m";
-    public static final String BLUE = "\u001B[34m";
-    public static final String PURPLE = "\u001B[35m";
-    public static final String CYAN = "\u001B[36m";
-    public static final String WHITE = "\u001B[37m";
-    public static final String RESET = "\u001B[0m";
+    //爬取数据量,100 200 500 1000
+    static final def MAX_NUM = 500;
+
+    static final def BLACK = "\u001B[30m";
+    static final def RED = "\u001B[31m";
+    static final def GREEN = "\u001B[32m";
+    static final def YELLOW = "\u001B[33m";
+    static final def BLUE = "\u001B[34m";
+    static final def PURPLE = "\u001B[35m";
+    static final def CYAN = "\u001B[36m";
+    static final def WHITE = "\u001B[37m";
+    static final def RESET = "\u001B[0m";
 
     static void main(String[] args) {
+
+//        MailManager.sendMail("22")
 
         createOmit()
 
@@ -28,16 +34,26 @@ class Qian1 {
     static def createOmit() {
 
         StringBuilder sb = new StringBuilder()
+        StringBuilder sbContent = new StringBuilder()
 
-        def map = [:]
-        map['山东'] = 'http://chart.icaile.com/?op=dcr1&num=500'
-        map['广东'] = 'http://gd11x5.icaile.com/?op=dcr1&num=500'
-        map['江西'] = 'http://jx11x5.icaile.com/?op=dcr1&num=500'
+        def urls = [:]
+        urls['山东'] = 'http://chart.icaile.com/?op=dcr1&num=' + MAX_NUM
+        urls['广东'] = 'http://gd11x5.icaile.com/?op=dcr1&num=' + MAX_NUM
+        urls['江西'] = 'http://jx11x5.icaile.com/?op=dcr1&num=' + MAX_NUM
 
         sb.append(createDivider())
 
         while (true) {
-            map.each { key, value ->
+            urls.each { key, value ->
+
+                Document document = Jsoup.connect(value)
+                        .maxBodySize(0)
+                        .timeout(10000)
+                        .get()
+
+                Element no = document.getElementsByClass("second-num-list alignRight").select("li").last()
+
+                sb.append("(").append(no.text()).append("\n")
 
                 sb.append("\t\t\t\t")
 
@@ -47,12 +63,7 @@ class Qian1 {
 
                 sb.append("\n")
 
-                sb.append(key)
-
-                Document document = Jsoup.connect(value)
-                        .maxBodySize(0)
-                        .timeout(10000)
-                        .get()
+                sb.append(key).append("\n")
 
                 Elements trs = document.getElementsByClass("chart-bg-foot").select("tr")
 
@@ -67,8 +78,10 @@ class Qian1 {
                         def text = tds.get(j).text()
                         if ("当前遗漏值".equals(tds.get(0).text()) && isNumeric(text)) {
                             if (Integer.parseInt(text) > 40) {
+                                sbContent.append(key).append(" => ").append(j - 1).append("已经有").append(text).append("次没出现了!")
                                 sb.append(GREEN + text + "\t" + RESET)
                             } else if (Integer.parseInt(text) > 30) {
+                                sbContent.append(key).append(" => ").append(j - 1).append("已经有").append(text).append("次没出现了!")
                                 sb.append(BLUE + text + "\t" + RESET)
                             } else {
                                 sb.append(text + "\t")
@@ -84,9 +97,17 @@ class Qian1 {
                 sb.append(createDivider())
             }
 
-            MailManager.sendMail(sb.toString())
+            if (Constants.SEND_MAIL && sbContent.size() > 0) {
+                MailManager.sendMail("新机会来了!", sbContent.toString())
+            }
 
-            sleep(60000)
+            print sb.toString()
+
+            //清空
+            sb.setLength(0)
+            sbContent.setLength(0)
+
+            sleep(60000 * 3)
         }
     }
 

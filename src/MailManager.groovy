@@ -7,7 +7,7 @@ import javax.mail.internet.MimeMessage
  */
 class MailManager {
 
-    static def sendMail(text) {
+    static def sendMail(title, content) {
         def to = Constants.MAIL_TO;
         def from = Constants.MAIL_FROM;
         def host = Constants.MAIL_HOST;
@@ -31,9 +31,8 @@ class MailManager {
             message.setFrom(new InternetAddress(from));
             message.addRecipient(Message.RecipientType.TO, new InternetAddress(to));
 
-            message.setSubject("11选5" + System.currentTimeMillis() + "");
-            message.setText(text);
-
+            message.setSubject(title);
+            message.setContent(content, "text/html;charset = gbk");
             Transport.send(message);
             println "发送消息成功"
         } catch (MessagingException mex) {
